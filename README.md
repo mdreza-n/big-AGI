@@ -118,7 +118,7 @@ Sure - here is real-world screeengrab as I'm writing this, while running a Beam 
 **Self-host and developers** (full control)  
 - Develop locally or self-host with Docker on your own infrastructure – [guide](docs/installation.md)  
 - Or fork & run on Vercel:  
-  [![Deploy on Vercel](https://img.shields.io/badge/Deploy-black?style=for-the-badge&logo=vercel&logoColor=white&labelColor=000)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fenricoros%2Fbig-AGI&env=OPENAI_API_KEY&envDescription=Backend%20API%20keys%2C%20optional%20and%20may%20be%20overridden%20by%20the%20UI.&envLink=https%3A%2F%2Fgithub.com%2Fenricoros%2Fbig-AGI%2Fblob%2Fmain%2Fdocs%2Fenvironment-variables.md&project-name=big-AGI)
+  [![Deploy on Vercel](https://img.shields.io/badge/Deploy-black?style=for-the-badge&logo=vercel&logoColor=white&labelColor=000)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fmdreza-n%2Fbig-AGI&env=OPENAI_API_KEY&envDescription=Backend%20API%20keys%2C%20optional%20and%20may%20be%20overridden%20by%20the%20UI.&envLink=https%3A%2F%2Fgithub.com%2Fenricoros%2Fbig-AGI%2Fblob%2Fmain%2Fdocs%2Fenvironment-variables.md&project-name=big-AGI)
 
 [//]: # (**For the latest Big-AGI:**)
 
