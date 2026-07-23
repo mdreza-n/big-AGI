@@ -1,5 +1,7 @@
 import { findServiceAccessOrThrow } from '~/modules/llms/vendors/vendor.helpers';
 
+import { vertexLinksAutoResolveFragments } from '~/modules/google/vertexai.client';
+
 import type { MaybePromise } from '~/common/types/useful.types';
 import { AIVndAntInlineFilesPolicy, getVndAntInlineFiles } from '~/common/stores/store-ai';
 import { AudioPlayer } from '~/common/util/audio/AudioPlayer';
@@ -15,10 +17,12 @@ import { getLabsLosslessImages } from '~/common/stores/store-ux-labs';
 import { llmChatPricing_adjusted } from '~/common/stores/llms/llms.pricing';
 import { metricsStoreAddChatGenerate } from '~/common/stores/metrics/store-metrics';
 import { stripUndefined } from '~/common/util/objectUtils';
+import { videoPlayObjectUrl } from '~/common/util/video/videoPlayManaged';
 import { webGeolocationCached } from '~/common/util/webGeolocationUtils';
 
+
 // NOTE: pay particular attention to the "import type", as this is importing from the server-side Zod definitions
-import type { AixAPI_Access, AixAPI_ConnectionOptions_ChatGenerate, AixAPI_Context_ChatGenerate, AixAPI_Model, AixAPIChatGenerate_Request } from '../server/api/aix.wiretypes';
+import type { AixAPI_Access, AixAPI_ConnectionOptions_ChatGenerate, AixAPI_Context_ChatGenerate, AixAPI_Model, AixAPIChatGenerate_Request, AixTools_ToolDefinition, AixTools_ToolsPolicy } from '../server/api/aix.wiretypes';
 
 import { AixStreamRetry } from './aix.client.retry';
 import { ReassemblerParticleTransforms, ContentReassembler } from './ContentReassembler';
@@ -68,11 +72,11 @@ export function aixCreateModelFromLLMOptions(
   const {
     llmRef, llmTemperature, llmResponseTokens, llmTopP, llmForceNoStream,
     llmVndAntEffort, llmVndGemEffort, llmVndOaiEffort, llmVndMiscEffort,
-    llmVndAnt1MContext, llmVndAntInfSpeed, llmVndAntSkills, llmVndAntThinkingBudget, llmVndAntWebDynamic, llmVndAntWebFetch, llmVndAntWebFetchMaxUses, llmVndAntWebSearch, llmVndAntWebSearchMaxUses,
+    llmVndAnt1MContext, llmVndAntCodeSandbox, llmVndAntInfSpeed, llmVndAntSkills, llmVndAntThinkingBudget, llmVndAntWebDynamic, llmVndAntWebFetch, llmVndAntWebFetchMaxUses, llmVndAntWebSearch, llmVndAntWebSearchMaxUses,
     llmVndBedrockAPI,
     llmVndGeminiAgentViz, llmVndGeminiAspectRatio, llmVndGeminiImageSize, llmVndGeminiCodeExecution, llmVndGeminiComputerUse, llmVndGeminiGoogleSearch, llmVndGeminiMediaResolution, llmVndGeminiThinkingBudget,
     // llmVndMoonshotWebSearch,
-    llmVndOaiRestoreMarkdown, llmVndOaiVerbosity, llmVndOaiWebSearchContext, llmVndOaiWebSearchGeolocation, llmVndOaiImageGeneration, llmVndOaiCodeInterpreter,
+    llmVndOaiReasoningMode, llmVndOaiRestoreMarkdown, llmVndOaiVerbosity, llmVndOaiWebSearchContext, llmVndOaiWebSearchGeolocation, llmVndOaiImageGeneration, llmVndOaiCodeInterpreter,
     llmVndOrtWebSearch,
     llmVndPerplexityDateFilter, llmVndPerplexitySearchMode,
     llmVndXaiCodeExecution, llmVndXaiSearchInterval, llmVndXaiWebSearch, llmVndXaiXSearch, llmVndXaiXSearchHandles,
@@ -100,7 +104,9 @@ export function aixCreateModelFromLLMOptions(
   const llmVndGeminiInteractions = llmInterfaces.includes(LLM_IF_GEM_Interactions);
 
   // Client-side late stage model HotFixes
-  const hotfixOmitTemperature = llmInterfaces.includes(LLM_IF_HOTFIX_NoTemperature);
+  // [2026-07-09, OpenAI] effort 'none' unlocks temperature on NoTemperature reasoning models (sweep-verified 0..2 on
+  // GPT-5.x at reasoning_effort=none); only OpenAI defs combine the hotfix with llmVndOaiEffort, so the bypass is vendor-scoped
+  const hotfixOmitTemperature = llmInterfaces.includes(LLM_IF_HOTFIX_NoTemperature) && llmVndOaiEffort !== 'none';
 
   // User Geolocation
   let userGeolocation: AixAPI_Model['userGeolocation'] | undefined;
@@ -132,6 +138,7 @@ export function aixCreateModelFromLLMOptions(
     // Anthropic - (vndAntContainerId, vndAntTransformInlineFiles are set in the decorate function)
     ...(llmVndAntThinkingBudget !== undefined ? { vndAntThinkingBudget: llmVndAntThinkingBudget === -1 ? 'adaptive' as const : llmVndAntThinkingBudget } : {}),
     ...(llmVndAnt1MContext ? { vndAnt1MContext: llmVndAnt1MContext } : {}),
+    ...(llmVndAntCodeSandbox === 'auto' ? { vndAntCodeSandbox: llmVndAntCodeSandbox } : {}), // standalone server-side code sandbox (Skills/PTC also enable it server-side)
     ...(llmVndAntInfSpeed ? { vndAntInfSpeed: 'fast' } : {}), // any tier (fast_2x/fast_6x/legacy fast) collapses to the wire 'fast'
     ...(llmVndAntSkills ? { vndAntSkills: llmVndAntSkills } : {}),
     ...(llmVndAntWebDynamic ? { vndAntWebDynamic: true } : {}),
@@ -160,6 +167,7 @@ export function aixCreateModelFromLLMOptions(
     // ...(llmVndMoonshotWebSearch === 'auto' ? { vndMoonshotWebSearch: 'auto' } : {}),
 
     // OpenAI
+    ...(llmVndOaiReasoningMode ? { vndOaiReasoningMode: llmVndOaiReasoningMode } : {}),
     ...(llmVndOaiResponsesAPI ? { vndOaiResponsesAPI: true } : {}),
     ...(llmVndOaiRestoreMarkdown ? { vndOaiRestoreMarkdown: llmVndOaiRestoreMarkdown } : {}),
     ...(llmVndOaiVerbosity ? { vndOaiVerbosity: llmVndOaiVerbosity } : {}),
@@ -186,6 +194,8 @@ export function aixCreateModelFromLLMOptions(
 export function aixDecorateModelFromGlobals(model: AixAPI_Model, decorations: {
   // [Anthropic Container] Container ID from a prior turn (caller is responsible for expiry checks)
   vndAntContainerId?: string;
+  // [OpenAI Responses Container] Code-interpreter container from a prior turn (caller is responsible for expiry checks)
+  vndOaiContainerId?: string;
   // [Anthropic File Inlining] Global user policy; 'off' means don't decorate (caller can pass it raw)
   vndAntTransformInlineFiles?: AIVndAntInlineFilesPolicy;
   // [Gemini Interactions] Session/sandbox env ID from a prior turn (no expiry gate on the wire today)
@@ -195,6 +205,10 @@ export function aixDecorateModelFromGlobals(model: AixAPI_Model, decorations: {
   // [Anthropic Container] Inject session state from a prior turn
   if (decorations.vndAntContainerId)
     model.vndAntContainerId = decorations.vndAntContainerId;
+
+  // [OpenAI Responses Container] Inject session container from a prior turn (ignored by non-Responses adapters)
+  if (decorations.vndOaiContainerId)
+    model.vndOaiContainerId = decorations.vndOaiContainerId;
 
   // [Anthropic File Inlining] Apply only when not 'off' - the wire enum doesn't include 'off'
   if (decorations.vndAntTransformInlineFiles && decorations.vndAntTransformInlineFiles !== 'off')
@@ -222,7 +236,12 @@ interface AixClientOptions {
   // -- Session State - extract? --
   // Cross-turn sandbox/container handles. Caller may pre-populate; resolver walks chat history to fill any unset slot.
   antContainerId?: string;            // [Anthropic Container] Container ID from a prior turn (caller checks expiry before setting)
+  oaiContainerId?: string;            // [OpenAI Responses Container] Code-interpreter container from a prior turn (caller checks expiry before setting)
   gemEnvironmentId?: string;                  // [Gemini Interactions] Session/sandbox env id from a prior turn (today: Antigravity; no expiry on the wire; best-effort - no auto-fallback if upstream rejects)
+
+  // Client-side tools (e.g., persona memory update)
+  tools?: AixTools_ToolDefinition[];
+  toolsPolicy?: AixTools_ToolsPolicy;
 }
 
 
@@ -292,6 +311,8 @@ export async function aixChatGenerateContent_DMessage_FromConversation(
     const aixChatContentGenerateRequest: AixAPIChatGenerate_Request = {
       systemMessage: await aixCGR_SystemMessage_FromDMessageOrThrow(chatSystemInstruction),
       chatSequence: await aixCGR_ChatSequence_FromDMessagesOrThrow(chatHistoryWithoutSystemMessages),
+      ...(clientOptions.tools?.length ? { tools: clientOptions.tools } : undefined),
+      ...(clientOptions.toolsPolicy ? { toolsPolicy: clientOptions.toolsPolicy } : undefined),
     };
 
     // Cross-turn upstream-container resolution. Walks history newest-first, stops at the first
@@ -301,6 +322,11 @@ export async function aixChatGenerateContent_DMessage_FromConversation(
     if (!clientOptions.antContainerId) {
       const uc = _findRecentUpstreamContainer(chatHistoryWithoutSystemMessages, 'vnd.ant.container');
       if (uc) clientOptions = { ...clientOptions, antContainerId: uc.containerId };
+    }
+    if (!clientOptions.oaiContainerId) {
+      // OpenAI Responses: expiresAt is stamped now+20min by the parser; the 15s buffer falls back to auto-create when stale.
+      const uc = _findRecentUpstreamContainer(chatHistoryWithoutSystemMessages, 'vnd.oai.container');
+      if (uc) clientOptions = { ...clientOptions, oaiContainerId: uc.containerId };
     }
     if (!clientOptions.gemEnvironmentId) {
       const uc = _findRecentUpstreamContainer(chatHistoryWithoutSystemMessages, 'vnd.gem.interactions');
@@ -582,6 +608,7 @@ export async function aixChatGenerateContent_DMessage_orThrow<TServiceSettings e
   const aixModel = aixCreateModelFromLLMOptions(llm.interfaces, llmParameters, clientOptions?.llmOptionsOverride, llmId);
   aixDecorateModelFromGlobals(aixModel, {
     vndAntContainerId: clientOptions?.antContainerId,
+    vndOaiContainerId: clientOptions?.oaiContainerId,
     vndAntTransformInlineFiles: aixAccess.dialect === 'anthropic' ? getVndAntInlineFiles() : undefined,
     vndGeminiEnvironmentId: clientOptions?.gemEnvironmentId,
   });
@@ -636,6 +663,14 @@ export async function aixChatGenerateContent_DMessage_orThrow<TServiceSettings e
   const metrics = _finalizeLlmMetricsWithCosts(cgMetricsLg, llm, `aix_chatgenerate_content-${aixContext.name}`);
   if (metrics) dMessage.generator = { ...dMessage.generator, metrics };
   dMessage.pendingIncomplete = false;
+
+  // [#1114] resolve Gemini/Vertex AI grounding redirect links before the final 'done' update, so every
+  // caller (chat, Beam scatter/fusion, reattach) gets resolved links atomically with completion.
+  // Policy-gated (no-op unless 'resolve') and timeout-capped; failures keep the originals.
+  if (outcome === 'completed' && dMessage.fragments.length) {
+    const resolvedFragments = await vertexLinksAutoResolveFragments(dMessage.fragments);
+    if (resolvedFragments) dMessage.fragments = resolvedFragments;
+  }
 
   // final update
   await onStreamingUpdate?.(dMessage, true);
@@ -900,6 +935,10 @@ async function _aixChatGenerateContent_LL(
         .catch((error) => console.log('[AIX] Failed to play audio:', { error }))
         .finally(() => URL.revokeObjectURL(audioUrl));
     },
+    (video) => {
+      // EXPERIMENTAL (Gemini Omni): play generated video in an ephemeral overlay; the object URL is revoked on close - nothing is persisted.
+      videoPlayObjectUrl(URL.createObjectURL(video.blob), video.label || 'AI Video');
+    },
     abortSignal,
   );
   const accumulator_LL = reassembler.S; // stable ref - readonly, same object throughout
@@ -983,9 +1022,9 @@ async function _aixChatGenerateContent_LL(
        * causing "closed connection" exceptions when resuming. Processing happens in
        * ContentReassembler's background promise chain.
        *
-       * Error handling split:
-       * - This catch: tRPC/network errors (connection, stream, abort)
-       * - Reassembler catch: processing errors (malformed particles, async work)
+       * Error handling split (see the channel map in aix.client.errors.ts):
+       * - This catch [Error Channel 1]: tRPC/network/transport errors (connection, stream, abort) -> aixClassifyStreamingError
+       * - Reassembler catch [Error Channel 2]: particle-processing errors (malformed particles, async work) -> aixClassifyReassemblyError
        */
       for await (const particle of particleStream)
         reassembler.enqueueWireParticle(particle);

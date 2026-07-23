@@ -55,6 +55,11 @@ type _EditorialDefaultsTable = {
 export const EditorialDefaults = {
 
   primaryChat: [
+    // TEMP 2026-06-16: Fable 5 held - not recommended to new users via Auto picks. Uncomment to restore.
+    // { vendor: 'anthropic',  modelId: 'claude-fable-5' },
+    // { vendor: 'bedrock',    modelId: 'us.anthropic.claude-fable-5' },
+    // { vendor: 'bedrock',    modelId: 'global.anthropic.claude-fable-5' },
+    // { vendor: 'openrouter', modelId: 'anthropic/claude-fable-5' },
     { vendor: 'anthropic',  modelId: 'claude-opus-4-8' },
     { vendor: 'bedrock',    modelId: 'us.anthropic.claude-opus-4-8-thinking' },
     { vendor: 'bedrock',    modelId: 'global.anthropic.claude-opus-4-8-thinking' },
@@ -63,23 +68,31 @@ export const EditorialDefaults = {
     { vendor: 'bedrock',    modelId: 'us.anthropic.claude-opus-4-7-thinking' },
     { vendor: 'bedrock',    modelId: 'global.anthropic.claude-opus-4-7-thinking' },
     { vendor: 'openrouter', modelId: 'anthropic/claude-opus-4-7' },
+    { vendor: 'openai',     modelId: 'gpt-5.6-sol' }, // 2026-07-09 GA - flagship tier, same price as 5.5
+    { vendor: 'openrouter', modelId: 'openai/gpt-5.6-sol' },
     { vendor: 'openai',     modelId: 'gpt-5.5' },
     { vendor: 'openrouter', modelId: 'openai/gpt-5.5' },
+    { vendor: 'googleai',   modelId: 'models/gemini-3.6-flash' }, // 2026-07-21 GA - newest Flash flagship, above 3.5 Flash (Elo 1485 vs 1476, cheaper output)
     { vendor: 'googleai',   modelId: 'models/gemini-3.5-flash' },
     { vendor: 'anthropic',  modelId: 'claude-opus-4-6' },
     { vendor: 'googleai',   modelId: 'models/gemini-3.1-pro-preview' },
     { vendor: 'anthropic',  modelId: 'claude-sonnet-4-6' },
+    { vendor: 'xai',        modelId: 'grok-4.5' },
     { vendor: 'xai',        modelId: 'grok-4.3' },
+    { vendor: 'moonshot',   modelId: 'kimi-k3' },
     { vendor: 'moonshot',   modelId: 'kimi-k2.6' },
-    { vendor: 'zai',        modelId: 'glm-5' },
+    { vendor: 'zai',        modelId: 'glm-5.2' },
     { vendor: 'deepseek',   modelId: 'deepseek-v4-pro' },
   ],
 
   codeApply: [
+    { vendor: 'googleai',   modelId: 'models/gemini-3.6-flash' }, // 2026-07-21 GA - "improved code/agentic planning" + token efficiency over 3.5 Flash
+    { vendor: 'openrouter', modelId: 'google/gemini-3.6-flash' },
     { vendor: 'googleai',   modelId: 'models/gemini-3.5-flash' },
     { vendor: 'openrouter', modelId: 'google/gemini-3.5-flash' },
     { vendor: 'openai',     modelId: 'gpt-5.3-codex' },
     { vendor: 'openrouter', modelId: 'openai/gpt-5.3-codex' },
+    { vendor: 'openai',     modelId: 'gpt-5.6-sol' }, // 2026-07-09 GA - "strongest yet for agentic coding"; codex still preferred for apply
     { vendor: 'openai',     modelId: 'gpt-5.5' },
     { vendor: 'anthropic',  modelId: 'claude-sonnet-4-6' },
     { vendor: 'bedrock',    modelId: 'us.anthropic.claude-sonnet-4-6' },
@@ -87,20 +100,25 @@ export const EditorialDefaults = {
     { vendor: 'openrouter', modelId: 'anthropic/claude-sonnet-4-6' },
     { vendor: 'anthropic',  modelId: 'claude-opus-4-8' },
     { vendor: 'anthropic',  modelId: 'claude-opus-4-7' },
+    { vendor: 'xai',        modelId: 'grok-4.5' }, // xAI: 'Code: Grok 4.5' (docs 2026-07-08)
     { vendor: 'xai',        modelId: 'grok-build-0.1' },
-    { vendor: 'zai',        modelId: 'glm-5-code' },
+    { vendor: 'zai',        modelId: 'glm-5.2' },
     { vendor: 'zai',        modelId: 'glm-5' },
     { vendor: 'moonshot',   modelId: 'kimi-k2.6' },
     { vendor: 'deepseek',   modelId: 'deepseek-v4-flash' },
   ],
 
   fastUtil: [
+    { vendor: 'openai',     modelId: 'gpt-5.6-luna' }, // 2026-07-09 GA - measured ~160 tok/s (faster than 5.4-mini), 1M ctx, $1/$6
+    { vendor: 'openrouter', modelId: 'openai/gpt-5.6-luna' },
     { vendor: 'openai',     modelId: 'gpt-5.4-mini' },
     { vendor: 'openrouter', modelId: 'openai/gpt-5.4-mini' },
     { vendor: 'openai',     modelId: 'gpt-5.4-nano' },
+    { vendor: 'googleai',   modelId: 'models/gemini-3.5-flash-lite' }, // 2026-07-21 GA - "low-latency subagent for high-volume automation" (Elo 1459 vs 3.1FL's 1432; slightly pricier at $0.30/$2.50 vs $0.25/$1.50)
+    { vendor: 'openrouter', modelId: 'google/gemini-3.5-flash-lite' },
     { vendor: 'googleai',   modelId: 'models/gemini-3.1-flash-lite' },
     { vendor: 'openrouter', modelId: 'google/gemini-3.1-flash-lite' },
-    { vendor: 'googleai',   modelId: 'models/gemini-2.5-flash-lite' },
+    { vendor: 'googleai',   modelId: 'models/gemini-2.5-flash-lite' }, // deprecated 2026-07-22, kept as deep fallback
     { vendor: 'anthropic',  modelId: 'claude-haiku-4-5-20251001' },
     { vendor: 'bedrock',    modelId: 'us.anthropic.claude-haiku-4-5-20251001-v1:0' },
     { vendor: 'bedrock',    modelId: 'global.anthropic.claude-haiku-4-5-20251001-v1:0' },
@@ -108,17 +126,21 @@ export const EditorialDefaults = {
     { vendor: 'moonshot',   modelId: 'kimi-k2.5' },
     { vendor: 'xai',        modelId: 'grok-4.20-0309-non-reasoning' },
     { vendor: 'xai',        modelId: 'grok-4.3' },
-    { vendor: 'zai',        modelId: 'glm-4.7-flash' },
+    { vendor: 'zai',        modelId: 'glm-5.2' },
     { vendor: 'deepseek',   modelId: 'deepseek-v4-flash' },
   ],
 
   imageCaption: [
+    { vendor: 'googleai',   modelId: 'models/gemini-3.6-flash' }, // 2026-07-21 GA - vision, cheaper output than 3.5 Flash
+    { vendor: 'openrouter', modelId: 'google/gemini-3.6-flash' },
     { vendor: 'googleai',   modelId: 'models/gemini-3.5-flash' },
     { vendor: 'openrouter', modelId: 'google/gemini-3.5-flash' },
     { vendor: 'anthropic',  modelId: 'claude-sonnet-4-6' },
     { vendor: 'anthropic',  modelId: 'claude-opus-4-8' },
     { vendor: 'anthropic',  modelId: 'claude-opus-4-7' },
     { vendor: 'openrouter', modelId: 'anthropic/claude-sonnet-4-6' },
+    { vendor: 'openai',     modelId: 'gpt-5.6-luna' }, // 2026-07-09 GA - vision, faster and a generation newer than 5.4-mini
+    { vendor: 'openrouter', modelId: 'openai/gpt-5.6-luna' },
     { vendor: 'openai',     modelId: 'gpt-5.4-mini' },
     { vendor: 'openrouter', modelId: 'openai/gpt-5.4-mini' },
   ],
@@ -138,8 +160,11 @@ export const EditorialDefaults = {
 export function llmsEditorialPickForDomain(
   domainId: DModelDomainId,
   filteredLlms: ReadonlyArray<DLLM>,
+  fallbackEditorialDomainId?: DModelDomainId, // optional secondary domain to check when the primary domain has no picks or no matches
 ): DLLMId | undefined {
-  const entries = EditorialDefaults[domainId];
+  const entries = EditorialDefaults[domainId]?.length ? EditorialDefaults[domainId]
+    : fallbackEditorialDomainId && EditorialDefaults[fallbackEditorialDomainId]?.length ? EditorialDefaults[fallbackEditorialDomainId]
+      : undefined;
   if (!entries) return undefined;
   for (const { vendor, modelId } of entries) {
     const hit = filteredLlms.find(llm => llm.vId === vendor && _editorialMatch(llm, modelId));
